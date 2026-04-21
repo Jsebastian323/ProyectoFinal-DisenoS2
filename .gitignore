@@ -1,10 +1,8 @@
-# ===== Claude / herramientas IA (NO SUBIR) =====
 .claude/
 .claude
 .auto-memory/
 .aider*
 
-# ===== Variables de entorno y secretos =====
 .env
 .env.*
 !.env.example
@@ -45,7 +43,7 @@ pnpm-debug.log*
 n8n/data/
 n8n/.n8n/
 
-# ===== PostgreSQL (volúmenes locales) =====
+# ===== PostgreSQL =====
 db/data/
 db/pgdata/
 
@@ -62,5 +60,5 @@ Thumbs.db
 logs/
 *.log
 
-# ===== Archivos de la tarea (no subir el pptx del profesor al repo) =====
 trabajo_final*.pptx
+
