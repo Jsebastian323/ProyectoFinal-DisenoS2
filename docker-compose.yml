@@ -15,6 +15,11 @@ services:
       - "5432:5432"
     networks:
       - gdp_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # ---------- Gateway ----------
   gateway:
@@ -40,7 +45,9 @@ services:
       dockerfile: services/create-person/Dockerfile
     container_name: gdp_create
     env_file: .env
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy
     networks: [gdp_net]
 
   update-person:
@@ -49,7 +56,9 @@ services:
       dockerfile: services/update-person/Dockerfile
     container_name: gdp_update
     env_file: .env
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy
     networks: [gdp_net]
 
   # Servicio de CONSULTA en contenedor independiente.
@@ -60,7 +69,9 @@ services:
       dockerfile: services/query-person/Dockerfile
     container_name: gdp_query
     env_file: .env
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy
     networks: [gdp_net]
 
   delete-person:
@@ -69,7 +80,9 @@ services:
       dockerfile: services/delete-person/Dockerfile
     container_name: gdp_delete
     env_file: .env
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy
     networks: [gdp_net]
 
   log-service:
@@ -78,7 +91,9 @@ services:
       dockerfile: services/log-service/Dockerfile
     container_name: gdp_log
     env_file: .env
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy
     networks: [gdp_net]
 
   # ---------- n8n (RAG + lenguaje natural) ----------

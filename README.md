@@ -35,14 +35,21 @@ Trabajo final de la materia **Diseño de Software 2**. Aplicación de gestión d
 
 ## Cómo arrancar en local
 
-Requisitos: Docker Desktop (o Docker Engine + Docker Compose v2) y Git.
+Requisitos: Docker Desktop (o Docker Engine + Docker Compose v2), Git, y `make` (opcional).
 
 ```bash
 git clone <url-del-repo>
 cd <repo>
 cp .env.example .env            # completar valores (credenciales Roble, API keys, etc.)
-docker compose up --build
+make up                         # build + arranque de todos los contenedores
+make smoke                      # verifica que el CRUD corre de punta a punta
 ```
+
+Si no tenés `make`, los comandos crudos están en el [Makefile](Makefile). En Windows, usar Git Bash.
+
+> **Nota (Windows):** si el path del repo tiene caracteres como `ñ` o espacios,
+> Docker BuildKit falla con un bug conocido. El `Makefile` ya lo evita usando
+> `DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0` al buildear.
 
 Cuando termine de levantar:
 
@@ -53,16 +60,17 @@ Cuando termine de levantar:
 | n8n (RAG)      | http://localhost:5678         |
 | Adminer (DB)   | http://localhost:8081         |
 
-Para **desactivar la consulta** (requerimiento del profesor: se debe poder habilitar y deshabilitar según demanda):
+### Atajos útiles
 
 ```bash
-docker compose stop query-person
-```
-
-Para reactivarla:
-
-```bash
-docker compose start query-person
+make up            # build + up -d
+make down          # apagar todo
+make smoke         # smoke test end-to-end
+make stop-query    # apagar solo query-person (requisito on-demand)
+make start-query   # reactivar query-person
+make logs          # tail de logs
+make ps            # estado de contenedores
+make clean         # down + borra volúmenes (pierde datos)
 ```
 
 ## Repartición de tareas sugerida
