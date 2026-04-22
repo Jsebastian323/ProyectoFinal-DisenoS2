@@ -34,12 +34,14 @@ CREATE TABLE IF NOT EXISTS transaction_log (
 CREATE INDEX IF NOT EXISTS idx_log_fecha    ON transaction_log(fecha);
 CREATE INDEX IF NOT EXISTS idx_log_doc      ON transaction_log(tipo_documento, nro_documento);
 
--- Tabla de embeddings para RAG (la llena n8n / el servicio de indexación)
+-- Tabla de embeddings para RAG (la llena n8n / el servicio de indexación).
+-- VECTOR(768) para modelos tipo Gemini text-embedding-004.
+-- Si se cambia de modelo (ej. OpenAI 3-small: 1536), actualizar aqui + recrear tabla.
 CREATE TABLE IF NOT EXISTS persona_embedding (
     id          BIGSERIAL PRIMARY KEY,
     persona_id  BIGINT REFERENCES persona(id) ON DELETE CASCADE,
     contenido   TEXT NOT NULL,
-    embedding   VECTOR(1536)
+    embedding   VECTOR(768)
 );
 
 CREATE INDEX IF NOT EXISTS idx_persona_embedding
