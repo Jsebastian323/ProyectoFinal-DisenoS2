@@ -1,0 +1,189 @@
+{
+  "name": "01 - Indexacion personas",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fe0bc96c-76e6-4002-acc4-1a7e06d3e33b",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, primer_nombre, segundo_nombre, apellidos, tipo_documento, nro_documento, fecha_nacimiento, genero, correo, celular FROM persona ORDER BY id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        416,
+        0
+      ],
+      "id": "3682b049-4104-427e-84ab-1a642cccc2fc",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "RBTY0Y0JrfGucqyf",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const p = $input.item.json;\nconst nombre = [p.primer_nombre, p.segundo_nombre, p.apellidos].filter(Boolean).join(' ');\nconst contenido = `${nombre}, ${p.tipo_documento} ${p.nro_documento}, nacido el ${p.fecha_nacimiento}, genero ${p.genero}, correo ${p.correo}, celular ${p.celular}.`;\nreturn { persona_id: p.id, contenido };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "c57c6ec7-8a89-4a51-a9ea-66becb3a07fc",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": {\n    \"parts\": [\n      { \"text\": \"={{ $json.contenido }}\" }\n    ]\n  },\n  \"outputDimensionality\": 768\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "28d2d3e0-69fd-4a4a-a74c-f54c1fbe5b06",
+      "name": "HTTP Request",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FxDbLDgP5kKvl8He",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO persona_embedding (persona_id, contenido, embedding)\nVALUES (\n  {{ $('Code in JavaScript').item.json.persona_id }},\n  '{{ $('Code in JavaScript').item.json.contenido.replaceAll(\"'\", \"''\") }}',\n  '[{{ $json.embedding.values.join(\",\") }}]'::vector\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "094d5bb2-b096-4ce3-a9fa-94eb07c80b48",
+      "name": "Execute a SQL query1",
+      "credentials": {
+        "postgres": {
+          "id": "RBTY0Y0JrfGucqyf",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "TRUNCATE persona_embedding;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "34ebe854-6e13-4358-bc2b-3bbbe4f88efa",
+      "name": "Execute a SQL query2",
+      "credentials": {
+        "postgres": {
+          "id": "RBTY0Y0JrfGucqyf",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query2": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8750612f-0514-448c-8173-644641305924",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "213671391374d705a705954e08341f78dc7561b66c83dac9a2f5d0d2ad36bf5e"
+  },
+  "id": "JY6VHi7ia7kkgjp8",
+  "tags": []
+}
