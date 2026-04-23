@@ -1,0 +1,217 @@
+{
+  "name": "02 - Chat RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "842bc59e-55b6-422d-89b7-9f520b3d48c6",
+      "name": "When chat message received",
+      "webhookId": "8955cdc6-0dc0-41a5-8988-027752d0f7de"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": {\n    \"parts\": [\n      { \"text\": \"={{ $json.chatInput }}\" }\n    ]\n  },\n  \"outputDimensionality\": 768\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "333bb882-0736-4111-aadf-26276cfcce70",
+      "name": "Embed pregunta",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FxDbLDgP5kKvl8He",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT persona_id, contenido\nFROM persona_embedding\nORDER BY embedding <=> '[{{ $json.embedding.values.join(\",\") }}]'::vector\nLIMIT 5;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        416,
+        0
+      ],
+      "id": "3f1d6e27-c15b-4d1b-b116-04d0f15e468d",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "RBTY0Y0JrfGucqyf",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst contextos = items.map(i => '- ' + i.json.contenido).join('\\n');\nconst pregunta = $('When chat message received').item.json.chatInput;\nconst prompt = `Eres un asistente que responde preguntas sobre personas registradas. Usa UNICAMENTE el contexto. Si la respuesta no esta en el contexto, di \"No tengo esa informacion\".\n\nContexto:\n${contextos}\n\nPregunta: ${pregunta}\nRespuesta:`;\nreturn [{ json: { prompt, pregunta } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "ae2c7de2-7c05-4b68-a302-848b6c126c6e",
+      "name": "Armar prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        { \"text\": {{ JSON.stringify($json.prompt) }} }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "87cc4a10-a8d6-4539-9118-428495df6753",
+      "name": "Gemini Chat",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FxDbLDgP5kKvl8He",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://log-service:8000/internal/log",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"accion\": \"NL_QUERY\",\n  \"usuario\": \"chat_n8n\",\n  \"payload\": {\n    \"pregunta\": \"={{ $('Armar prompt').item.json.pregunta }}\",\n    \"respuesta\": \"={{ $json.candidates[0].content.parts[0].text }}\"\n  },\n  \"resultado\": \"ok\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "c4405cfa-7b92-41f1-9ab5-ab1fd3c8bc4c",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const texto = $('Gemini Chat').item.json.candidates[0].content.parts[0].text;\nreturn [{ json: { output: texto } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        0
+      ],
+      "id": "b9fdb8fa-4ddd-4ae6-9789-8e0416f55e96",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Embed pregunta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed pregunta": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Armar prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3a9ae38c-d137-4ad5-a784-3eb1a1d349e8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "213671391374d705a705954e08341f78dc7561b66c83dac9a2f5d0d2ad36bf5e"
+  },
+  "id": "88VeI3PHKjwdlhfv",
+  "tags": []
+}

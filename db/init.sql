@@ -44,6 +44,10 @@ CREATE TABLE IF NOT EXISTS persona_embedding (
     embedding   VECTOR(768)
 );
 
-CREATE INDEX IF NOT EXISTS idx_persona_embedding
-    ON persona_embedding USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 100);
+-- Indice ivfflat intencionalmente NO se crea aqui. Con pocos datos (decenas o
+-- cientos de filas) un ivfflat mal entrenado DESCARTA filas en la busqueda
+-- (low recall) y el workflow de RAG devuelve 0 resultados. Un seq scan sobre
+-- unos miles de filas es mas rapido y 100% exacto. Crear el indice solo
+-- cuando la tabla tenga decenas de miles de filas reales:
+--   CREATE INDEX idx_persona_embedding ON persona_embedding
+--     USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
