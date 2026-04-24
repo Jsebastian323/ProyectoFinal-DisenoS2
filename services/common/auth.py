@@ -1,17 +1,45 @@
 """
-Validacion de token del SSO (Proyecto Roble) via OIDC.
+Validacion de token contra el SSO de Proyecto Roble.
 
-Modo mock mientras no haya credenciales de Roble: devuelve siempre un usuario
-demo, con o sin header Authorization. Cuando el equipo tenga las credenciales,
-reemplazar por validacion de firma contra JWKS del issuer.
+El usuario hace login en el frontend -> Roble responde con accessToken.
+El frontend lo envia en cada request en el header Authorization: Bearer <token>.
+Cada microservicio delega la validacion a Roble:
+
+    GET {ROBLE_BASE_URL}/auth/{ROBLE_DB_NAME}/verify-token
+    Authorization: Bearer <token>
+    -> 200 {"valid": true, "user": {"sub","email","dbName","role","sessionId"}}
+    -> 401 si el token es invalido o expiro
+
+En cada request hacemos una llamada extra a Roble. Suma latencia (~100-300ms)
+pero es lo mas simple y no requiere compartir un secreto de firma del JWT.
 """
 import os
-from fastapi import Header
+import httpx
+from fastapi import Header, HTTPException, status
 
-ISSUER = os.getenv("ROBLE_ISSUER_URL", "")
-CLIENT_ID = os.getenv("ROBLE_CLIENT_ID", "")
+ROBLE_BASE_URL = os.getenv("ROBLE_BASE_URL", "https://roble-api.openlab.uninorte.edu.co")
+ROBLE_DB_NAME = os.getenv("ROBLE_DB_NAME", "")
+VERIFY_URL = f"{ROBLE_BASE_URL}/auth/{ROBLE_DB_NAME}/verify-token"
 
 
 def verify_token(authorization: str = Header(default="")) -> dict:
-    # TODO(Jose): cuando Roble este listo, validar Bearer token con JWKS del issuer.
-    return {"sub": "usuario_demo", "email": "demo@unisabana.edu.co"}
+    """
+    Dependencia de FastAPI. Retorna los claims del usuario autenticado.
+    Lanza 401 si el token falta o es invalido, 503 si Roble no responde.
+    """
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token requerido")
+
+    try:
+        resp = httpx.get(VERIFY_URL, headers={"Authorization": authorization}, timeout=5.0)
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=503, detail=f"SSO no disponible: {e}")
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=401, detail="Token invalido")
+
+    data = resp.json()
+    if not data.get("valid"):
+        raise HTTPException(status_code=401, detail="Token invalido")
+
+    return data["user"]
