@@ -95,35 +95,37 @@ Diagramas detallados en [`docs/arquitectura.md`](docs/arquitectura.md) (4 diagra
 
 ## Cómo arrancar en local
 
-Requisitos: Docker Desktop o Docker Engine + Compose v2, Git, Node 18+ (para buildear el frontend), y opcionalmente `make`.
+**Guía completa paso a paso para los compañeros del equipo en [`docs/setup-equipo.md`](docs/setup-equipo.md)** (incluye configuración de n8n, qué credenciales crear, cómo obtener la URL del chat, troubleshooting y lo que sí/no se automatiza).
+
+Versión resumida:
 
 ```bash
 git clone <url>
 cd "Diseño 2"
-cp .env.example .env                    # completar ROBLE_DB_NAME y N8N_INDEX_WEBHOOK_URL
+cp .env.example .env
+cp frontend/.env.example frontend/.env
 cd frontend && npm install && npm run build && cd ..
-docker compose up -d --build            # primera vez: ~3-5 min de build/pull
+docker compose up -d --build
+make import-workflows                   # importa los 3 workflows en n8n
+# luego en la UI de n8n: crear credenciales Postgres + Gemini,
+# reasignar a los nodos, publicar 02 y 03, copiar webhook URL a frontend/.env
 ```
 
 > **Windows:** si el path del repo contiene `ñ` o espacios, BuildKit falla. El `Makefile` ya prefija con `DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0`.
 
 ### Variables de entorno claves
 
+`.env` (raíz):
 ```
 ROBLE_BASE_URL=https://roble-api.openlab.uninorte.edu.co
 ROBLE_DB_NAME=<id del proyecto creado en roble.openlab.uninorte.edu.co>
 N8N_INDEX_WEBHOOK_URL=http://n8n:5678/webhook/indexar-persona
 ```
 
-### Configuración inicial de n8n (sólo una vez)
-
-1. Abrir http://localhost:5678 (auth básica `admin` / `admin_dev`).
-2. Crear cuenta de owner.
-3. Importar los 3 workflows desde `n8n/workflows/*.json`.
-4. Crear credenciales **Postgres** (host=`db`, db=`gdp`, user=`gdp_user`, pass=`gdp_pass_dev`) y **Google Gemini (PaLM) API**.
-5. Reasignar las credenciales a los nodos correspondientes (al importar quedan sin credencial).
-6. **Publicar** los workflows 02 y 03 (botón naranja arriba a la derecha). El 01 queda manual.
-7. En el Chat Trigger del workflow 02, activar **"Make Chat Publicly Available"** y copiar la Production URL al `frontend/src/auth.js` (constante `CHAT_WEBHOOK_URL` en `ChatNL.jsx`).
+`frontend/.env`:
+```
+VITE_CHAT_WEBHOOK_URL=http://localhost:5678/webhook/<tu-webhook-id>/chat
+```
 
 ## URLs locales
 

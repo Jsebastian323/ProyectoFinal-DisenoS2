@@ -9,7 +9,7 @@ SHELL := /bin/bash
 COMPOSE := docker compose
 NO_BUILDKIT := DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0
 
-.PHONY: help up down build rebuild logs ps smoke stop-query start-query clean
+.PHONY: help up down build rebuild logs ps smoke stop-query start-query clean import-workflows
 
 help:
 	@echo "Targets:"
@@ -22,6 +22,7 @@ help:
 	@echo "  make smoke         - Smoke test end-to-end del CRUD via gateway"
 	@echo "  make stop-query    - Apaga el microservicio de consulta (requisito del profesor)"
 	@echo "  make start-query   - Reactiva el microservicio de consulta"
+	@echo "  make import-workflows - Importa los 3 workflows JSON en n8n (post-setup)"
 	@echo "  make clean         - down + borra volumenes (pierde los datos)"
 
 up:
@@ -52,3 +53,13 @@ start-query:
 
 clean:
 	$(COMPOSE) down -v
+
+# Importa los 3 workflows (.json) al contenedor n8n. Util para que un
+# miembro nuevo del equipo no tenga que importarlos a mano por la UI.
+# El directorio n8n/workflows del host ya esta montado en /workflows del
+# contenedor (ver docker-compose.yml), asi que el CLI los lee directo.
+# Despues hay que reasignar credenciales y publicar (eso si es manual).
+import-workflows:
+	@echo "Importando workflows en n8n (necesita el contenedor up)..."
+	docker exec gdp_n8n n8n import:workflow --separate --input=/workflows/
+	@echo "Listo. Abri http://localhost:5678 y reasigna las credenciales en cada workflow."

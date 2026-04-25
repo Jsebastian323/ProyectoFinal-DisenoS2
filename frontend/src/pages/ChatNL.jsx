@@ -3,8 +3,13 @@ import { createChat } from '@n8n/chat'
 import '@n8n/chat/style.css'
 
 // Webhook del Chat Trigger del workflow "02 - Chat RAG" de n8n.
-// Si se cambia de instancia de n8n o se recrea el workflow, actualizar aqui.
-const CHAT_WEBHOOK_URL = 'http://localhost:5678/webhook/8955cdc6-0dc0-41a5-8988-027752d0f7de/chat'
+// Cada miembro del equipo tiene su propio webhookId al importar el workflow,
+// asi que se configura por env var (frontend/.env -> VITE_CHAT_WEBHOOK_URL).
+// Si la variable no esta definida, usa el webhookId del laptop de Juan
+// (sirve como fallback para que el repo arranque "out-of-the-box" en demo).
+const CHAT_WEBHOOK_URL =
+  import.meta.env.VITE_CHAT_WEBHOOK_URL ||
+  'http://localhost:5678/webhook/8955cdc6-0dc0-41a5-8988-027752d0f7de/chat'
 
 export default function ChatNL() {
   useEffect(() => {
