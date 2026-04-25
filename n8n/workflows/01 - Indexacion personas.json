@@ -114,6 +114,26 @@
           "name": "Postgres account"
         }
       }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        240
+      ],
+      "id": "e44b82de-03ff-4122-8dbc-ab223bf051db",
+      "name": "Schedule Trigger"
     }
   ],
   "pinData": {},
@@ -172,14 +192,25 @@
           }
         ]
       ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "4f4f4834-6ea0-455b-ab24-6ea5cd643de4",
+  "versionId": "6bf62538-9ec7-40f7-af54-164e05926654",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "213671391374d705a705954e08341f78dc7561b66c83dac9a2f5d0d2ad36bf5e"
