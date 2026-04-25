@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { borrarPersona, extraerError } from '../api.js'
+import { notify } from '../ui/notifications.js'
 
 export default function Borrar() {
   const [form, setForm] = useState({ tipo_documento: 'Cedula', nro_documento: '' })
@@ -13,9 +14,13 @@ export default function Borrar() {
     setStatus({ type: null, msg: '' })
     try {
       const { data } = await borrarPersona(form.tipo_documento, form.nro_documento)
-      setStatus({ type: 'ok', msg: `Persona eliminada (id ${data.deleted_id}).` })
+      const msg = `Persona eliminada (id ${data.deleted_id}).`
+      setStatus({ type: 'ok', msg })
+      notify.ok(msg)
     } catch (err) {
-      setStatus({ type: 'err', msg: extraerError(err) })
+      const m = extraerError(err)
+      setStatus({ type: 'err', msg: m })
+      notify.err(m)
     } finally {
       setLoading(false)
     }

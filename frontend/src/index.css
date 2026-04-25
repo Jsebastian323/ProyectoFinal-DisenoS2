@@ -113,3 +113,57 @@ th { background: #f9fafb; font-weight: 600; font-size: 0.85rem; color: #374151; 
 tr:last-child td { border-bottom: none; }
 
 hr.sep { margin: 2rem 0; border: none; border-top: 1px solid #e5e7eb; }
+
+/* ===== LoadingBar (barra superior indeterminada) ===== */
+.loading-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #3b82f6;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.loading-bar.visible {
+  opacity: 1;
+  animation: loading-pulse 1.4s ease-in-out infinite;
+}
+@keyframes loading-pulse {
+  0%   { transform: scaleX(0);   transform-origin: left;  }
+  50%  { transform: scaleX(0.8); transform-origin: left;  }
+  51%  { transform: scaleX(0.8); transform-origin: right; }
+  100% { transform: scaleX(0);   transform-origin: right; }
+}
+
+/* ===== Toaster (notificaciones bottom-right) ===== */
+.toaster {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  padding: 0.7rem 1rem;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  min-width: 240px;
+  max-width: 380px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  animation: toast-in 0.25s ease-out;
+  pointer-events: auto;
+}
+.toast.ok  { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.toast.err { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.toast.info { background: #dbeafe; color: #1e3a8a; border: 1px solid #93c5fd; }
+@keyframes toast-in {
+  from { transform: translateX(120%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}

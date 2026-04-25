@@ -1,21 +1,47 @@
 {
-  "name": "01 - Indexacion personas",
+  "name": "03 - Indexar persona",
   "nodes": [
     {
-      "parameters": {},
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "indexar-persona",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
       "position": [
         0,
         0
       ],
-      "id": "fe0bc96c-76e6-4002-acc4-1a7e06d3e33b",
-      "name": "When clicking ‘Execute workflow’"
+      "id": "c3551617-eeb5-47a2-87d7-3931723c560f",
+      "name": "Webhook",
+      "webhookId": "64e6b6cb-dcaa-4999-86cf-863b798e656e"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, primer_nombre, segundo_nombre, apellidos, tipo_documento, nro_documento, fecha_nacimiento, genero, correo, celular, foto_path FROM persona ORDER BY id; ",
+        "query": "DELETE FROM persona_embedding WHERE persona_id = {{ $json.body.persona_id }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "abac6cf7-0f10-4413-8fc4-1bf0cdf02d09",
+      "name": "Borrar viejo",
+      "credentials": {
+        "postgres": {
+          "id": "RBTY0Y0JrfGucqyf",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, primer_nombre, segundo_nombre, apellidos, tipo_documento, nro_documento, fecha_nacimiento, genero, correo, celular, foto_path\nFROM persona\nWHERE id = {{ $('Webhook').item.json.body.persona_id }};",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
@@ -24,7 +50,7 @@
         416,
         0
       ],
-      "id": "3682b049-4104-427e-84ab-1a642cccc2fc",
+      "id": "33447c4c-d637-41c1-ac36-a0febf76cc27",
       "name": "Execute a SQL query",
       "credentials": {
         "postgres": {
@@ -36,7 +62,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const p = $input.item.json;\nconst nombre = [p.primer_nombre, p.segundo_nombre, p.apellidos].filter(Boolean).join(' ');\nconst foto = p.foto_path ? ` Foto: http://localhost:8080/media/${p.foto_path}.` : '';\nconst contenido = `${nombre}, ${p.tipo_documento} ${p.nro_documento}, nacido el ${p.fecha_nacimiento}, genero ${p.genero}, correo ${p.correo}, celular ${p.celular}.${foto}`;\nreturn { persona_id: p.id, contenido };"
+        "jsCode": "const p = $input.item.json;\nconst nombre = [p.primer_nombre, p.segundo_nombre, p.apellidos].filter(Boolean).join(' ');\nconst contenido = `${nombre}, ${p.tipo_documento} ${p.nro_documento}, nacido el ${p.fecha_nacimiento}, genero ${p.genero}, correo ${p.correo}, celular ${p.celular}.`;\nreturn { persona_id: p.id, contenido };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -44,8 +70,8 @@
         624,
         0
       ],
-      "id": "c57c6ec7-8a89-4a51-a9ea-66becb3a07fc",
-      "name": "Code in JavaScript"
+      "id": "6c5f038f-1058-48ad-80d5-2001eaff874f",
+      "name": "Armar contenido"
     },
     {
       "parameters": {
@@ -55,7 +81,7 @@
         "nodeCredentialType": "googlePalmApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"content\": {\n    \"parts\": [\n      { \"text\": \"={{ $json.contenido }}\" }\n    ]\n  },\n  \"outputDimensionality\": 768\n}",
+        "jsonBody": "={\n  \"content\": { \"parts\": [ { \"text\": \"={{ $json.contenido }}\" } ] },\n  \"outputDimensionality\": 768\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -64,7 +90,7 @@
         832,
         0
       ],
-      "id": "28d2d3e0-69fd-4a4a-a74c-f54c1fbe5b06",
+      "id": "4c4bc65b-7b75-4572-9039-32cd98eb41f6",
       "name": "HTTP Request",
       "credentials": {
         "googlePalmApi": {
@@ -76,38 +102,17 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO persona_embedding (persona_id, contenido, embedding)\nVALUES (\n  {{ $('Code in JavaScript').item.json.persona_id }},\n  '{{ $('Code in JavaScript').item.json.contenido.replaceAll(\"'\", \"''\") }}',\n  '[{{ $json.embedding.values.join(\",\") }}]'::vector\n);",
+        "query": "INSERT INTO persona_embedding (persona_id, contenido, embedding)\nVALUES (\n  {{ $('Armar contenido').item.json.persona_id }},\n  '{{ $('Armar contenido').item.json.contenido.replaceAll(\"'\", \"''\") }}',\n  '[{{ $json.embedding.values.join(\",\") }}]'::vector\n);",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1040,
+        1008,
         0
       ],
-      "id": "094d5bb2-b096-4ce3-a9fa-94eb07c80b48",
+      "id": "eda8d216-ad9c-4f32-9307-3a59cf815222",
       "name": "Execute a SQL query1",
-      "credentials": {
-        "postgres": {
-          "id": "RBTY0Y0JrfGucqyf",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "TRUNCATE persona_embedding;",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        208,
-        0
-      ],
-      "id": "34ebe854-6e13-4358-bc2b-3bbbe4f88efa",
-      "name": "Execute a SQL query2",
       "credentials": {
         "postgres": {
           "id": "RBTY0Y0JrfGucqyf",
@@ -118,11 +123,22 @@
   ],
   "pinData": {},
   "connections": {
-    "When clicking ‘Execute workflow’": {
+    "Webhook": {
       "main": [
         [
           {
-            "node": "Execute a SQL query2",
+            "node": "Borrar viejo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar viejo": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
             "type": "main",
             "index": 0
           }
@@ -133,14 +149,14 @@
       "main": [
         [
           {
-            "node": "Code in JavaScript",
+            "node": "Armar contenido",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code in JavaScript": {
+    "Armar contenido": {
       "main": [
         [
           {
@@ -161,29 +177,18 @@
           }
         ]
       ]
-    },
-    "Execute a SQL query2": {
-      "main": [
-        [
-          {
-            "node": "Execute a SQL query",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "4f4f4834-6ea0-455b-ab24-6ea5cd643de4",
+  "versionId": "cdb78823-d3ff-4b17-a7dd-9c58437946e0",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "213671391374d705a705954e08341f78dc7561b66c83dac9a2f5d0d2ad36bf5e"
   },
-  "id": "JY6VHi7ia7kkgjp8",
+  "id": "N0wB03RP9DMQbM1X",
   "tags": []
 }

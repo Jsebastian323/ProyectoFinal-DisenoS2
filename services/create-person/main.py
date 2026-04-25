@@ -7,6 +7,7 @@ from common.models import PersonaIn
 from common.db import get_conn
 from common.logger import log_action
 from common.auth import verify_token
+from common.reindex import reindex_persona
 
 app = FastAPI(title="create-person")
 
@@ -49,4 +50,5 @@ def crear_persona(persona: PersonaIn, user=Depends(verify_token)):
         payload=persona.model_dump(mode="json"),
         resultado=f"id={new_id}",
     )
-    return {"id": new_id, **persona.model_dump(mode="json")}
+    reindex_persona(new_id)
+    return {"id": new_id, "foto_path": None, **persona.model_dump(mode="json")}

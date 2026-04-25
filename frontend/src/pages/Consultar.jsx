@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { consultarPersona, extraerError } from '../api.js'
+import { Link } from 'react-router-dom'
+import { consultarPersona, fotoUrl, extraerError } from '../api.js'
 
 export default function Consultar() {
   const [form, setForm] = useState({ tipo_documento: 'Cedula', nro_documento: '' })
@@ -42,17 +43,29 @@ export default function Consultar() {
       {status.type && <div className={`msg ${status.type}`}>{status.msg}</div>}
 
       {result && (
-        <table>
-          <tbody>
-            {Object.entries(result).map(([k, v]) => (
-              <tr key={k}>
-                <th style={{ width: '35%' }}>{k}</th>
-                <td>{v == null || v === '' ? '-' : String(v)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          {result.foto_path && (
+            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+              <img src={fotoUrl(result.foto_path)} alt={result.primer_nombre}
+                   style={{ maxWidth: '220px', maxHeight: '220px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }} />
+            </div>
+          )}
+          <table>
+            <tbody>
+              {Object.entries(result).filter(([k]) => k !== 'foto_path').map(([k, v]) => (
+                <tr key={k}>
+                  <th style={{ width: '35%' }}>{k}</th>
+                  <td>{v == null || v === '' ? '-' : String(v)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
       )}
+
+      <p style={{ marginTop: '1.5rem', fontSize: '0.9rem' }}>
+        ¿Quieres ver todas las personas registradas? <Link to="/galeria">Ir a la galeria</Link>
+      </p>
     </>
   )
 }

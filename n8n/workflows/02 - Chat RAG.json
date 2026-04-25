@@ -3,6 +3,7 @@
   "nodes": [
     {
       "parameters": {
+        "public": true,
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
@@ -64,7 +65,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst contextos = items.map(i => '- ' + i.json.contenido).join('\\n');\nconst pregunta = $('When chat message received').item.json.chatInput;\nconst prompt = `Eres un asistente que responde preguntas sobre personas registradas. Usa UNICAMENTE el contexto. Si la respuesta no esta en el contexto, di \"No tengo esa informacion\".\n\nContexto:\n${contextos}\n\nPregunta: ${pregunta}\nRespuesta:`;\nreturn [{ json: { prompt, pregunta } }];"
+        "jsCode": "const items = $input.all();\nconst contextos = items.map(i => '- ' + i.json.contenido).join('\\n');\nconst pregunta = $('When chat message received').item.json.chatInput;\nconst prompt = `Eres un asistente que responde preguntas sobre personas registradas. Usa UNICAMENTE el contexto.\n\nReglas:\n1. Si la pregunta menciona un nombre y hay VARIAS personas en el contexto que lo comparten, listalas TODAS, distinguiendolas por su numero de documento. No elijas una sola.\n2. Si la pregunta es general (ej. \"que personas hay registradas\"), lista todas las del contexto.\n3. Si la respuesta no esta en el contexto, di claramente \"No tengo esa informacion\".\n4. No inventes datos.\n\nSi en el contexto de una persona aparece \"Foto: <URL>\", incluye su imagen usando markdown ![<nombre de la persona>](<URL>) — una imagen por persona.\n\nContexto:\n${contextos}\n\nPregunta: ${pregunta}\nRespuesta:`;\nreturn [{ json: { prompt, pregunta } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -107,7 +108,7 @@
         "url": "http://log-service:8000/internal/log",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"accion\": \"NL_QUERY\",\n  \"usuario\": \"chat_n8n\",\n  \"payload\": {\n    \"pregunta\": \"={{ $('Armar prompt').item.json.pregunta }}\",\n    \"respuesta\": \"={{ $json.candidates[0].content.parts[0].text }}\"\n  },\n  \"resultado\": \"ok\"\n}",
+        "jsonBody": "={\n  \"accion\": \"NL_QUERY\",\n  \"usuario\": \"chat_n8n\",\n  \"payload\": {\n    \"pregunta\": {{ JSON.stringify($('Armar prompt').item.json.pregunta) }},\n    \"respuesta\": {{ JSON.stringify($json.candidates[0].content.parts[0].text) }}\n  },\n  \"resultado\": \"ok\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -202,12 +203,12 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "3a9ae38c-d137-4ad5-a784-3eb1a1d349e8",
+  "versionId": "14cd58b2-4a71-4148-af8e-5be2f7b13334",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "213671391374d705a705954e08341f78dc7561b66c83dac9a2f5d0d2ad36bf5e"

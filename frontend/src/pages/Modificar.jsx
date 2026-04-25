@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { consultarPersona, modificarPersona, extraerError } from '../api.js'
+import { consultarPersona, modificarPersona, subirFoto, fotoUrl, extraerError } from '../api.js'
+import { notify } from '../ui/notifications.js'
 
 export default function Modificar() {
   const [busqueda, setBusqueda] = useState({ tipo_documento: 'Cedula', nro_documento: '' })
   const [form, setForm] = useState(null)
+  const [foto, setFoto] = useState(null)
   const [status, setStatus] = useState({ type: null, msg: '' })
   const [loading, setLoading] = useState(false)
 
@@ -32,11 +34,26 @@ export default function Modificar() {
     try {
       const body = { ...form }
       delete body.id
+      delete body.foto_path
       if (!body.segundo_nombre) delete body.segundo_nombre
       await modificarPersona(body)
-      setStatus({ type: 'ok', msg: `Persona ${body.tipo_documento} ${body.nro_documento} actualizada.` })
+      let msg = `Persona ${body.tipo_documento} ${body.nro_documento} actualizada.`
+      if (foto) {
+        try {
+          const r = await subirFoto(body.tipo_documento, body.nro_documento, foto)
+          setForm({ ...form, foto_path: r.data.foto_path })
+          setFoto(null)
+          msg += ' Foto actualizada.'
+        } catch (fe) {
+          msg += ` Pero la foto fallo: ${extraerError(fe)}`
+        }
+      }
+      setStatus({ type: 'ok', msg })
+      notify.ok(msg)
     } catch (err) {
-      setStatus({ type: 'err', msg: extraerError(err) })
+      const m = extraerError(err)
+      setStatus({ type: 'err', msg: m })
+      notify.err(m)
     } finally {
       setLoading(false)
     }
@@ -91,6 +108,16 @@ export default function Modificar() {
             </label>
             <label>Celular
               <input value={form.celular} onChange={set('celular')} required pattern="\d{10}" maxLength={10} />
+            </label>
+            {form.foto_path && (
+              <div>
+                <label style={{ marginBottom: '0.25rem' }}>Foto actual</label>
+                <img src={fotoUrl(form.foto_path)} alt="foto actual"
+                     style={{ maxWidth: '160px', maxHeight: '160px', borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+              </div>
+            )}
+            <label>Cambiar foto (opcional)
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFoto(e.target.files[0] || null)} />
             </label>
             <button disabled={loading}>{loading ? 'Actualizando...' : 'Actualizar'}</button>
           </form>

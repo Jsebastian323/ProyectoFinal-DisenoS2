@@ -12,6 +12,12 @@ from common.auth import verify_token
 
 app = FastAPI(title="query-person")
 
+COLS = [
+    "id", "tipo_documento", "nro_documento", "primer_nombre", "segundo_nombre",
+    "apellidos", "fecha_nacimiento", "genero", "correo", "celular", "foto_path",
+]
+SELECT_COLS = ", ".join(COLS)
+
 
 @app.get("/health")
 def health():
@@ -26,12 +32,7 @@ def consultar(
 ):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(
-            """
-            SELECT id, tipo_documento, nro_documento, primer_nombre, segundo_nombre,
-                   apellidos, fecha_nacimiento, genero, correo, celular
-            FROM persona
-            WHERE tipo_documento=%s AND nro_documento=%s
-            """,
+            f"SELECT {SELECT_COLS} FROM persona WHERE tipo_documento=%s AND nro_documento=%s",
             (tipo_documento, nro_documento),
         )
         row = cur.fetchone()
@@ -47,6 +48,19 @@ def consultar(
     if not row:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
 
-    cols = ["id","tipo_documento","nro_documento","primer_nombre","segundo_nombre",
-            "apellidos","fecha_nacimiento","genero","correo","celular"]
-    return dict(zip(cols, row))
+    return dict(zip(COLS, row))
+
+
+@app.get("/all")
+def listar_todas(user=Depends(verify_token)):
+    # Soporte para la galeria: lista todas las personas registradas.
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(f"SELECT {SELECT_COLS} FROM persona ORDER BY id DESC")
+        rows = cur.fetchall()
+
+    log_action(
+        accion="QUERY",
+        usuario=user.get("email"),
+        resultado=f"galeria n={len(rows)}",
+    )
+    return [dict(zip(COLS, r)) for r in rows]

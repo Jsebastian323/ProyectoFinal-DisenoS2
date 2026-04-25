@@ -50,3 +50,4 @@ class PersonaIn(BaseModel):
 
 class PersonaOut(PersonaIn):
     id: int
+    foto_path: Optional[str] = None

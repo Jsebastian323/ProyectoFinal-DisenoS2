@@ -1,10 +1,14 @@
 """
 Microservicio: Eliminar persona por documento.
 """
+from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException
 from common.db import get_conn
 from common.logger import log_action
 from common.auth import verify_token
+from common.reindex import reindex_persona
+
+MEDIA_DIR = Path("/app/media")
 
 app = FastAPI(title="delete-person")
 
@@ -36,4 +40,15 @@ def borrar(
     )
     if not row:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
-    return {"deleted_id": row[0]}
+    deleted_id = row[0]
+
+    # Borrar foto del disco (si existe). Cualquier extension permitida.
+    if MEDIA_DIR.exists():
+        for f in MEDIA_DIR.glob(f"{deleted_id}.*"):
+            f.unlink(missing_ok=True)
+
+    # CASCADE en persona_embedding ya borro el embedding viejo, pero llamamos
+    # al webhook igual: el workflow es idempotente y el log de n8n queda
+    # consistente con la accion.
+    reindex_persona(deleted_id)
+    return {"deleted_id": deleted_id}

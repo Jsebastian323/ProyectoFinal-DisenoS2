@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { crearPersona, extraerError } from '../api.js'
+import { crearPersona, subirFoto, extraerError } from '../api.js'
+import { notify } from '../ui/notifications.js'
 
 const initial = {
   tipo_documento: 'Cedula',
@@ -15,6 +16,7 @@ const initial = {
 
 export default function Crear() {
   const [form, setForm] = useState(initial)
+  const [foto, setFoto] = useState(null)
   const [status, setStatus] = useState({ type: null, msg: '' })
   const [loading, setLoading] = useState(false)
 
@@ -28,10 +30,24 @@ export default function Crear() {
       const body = { ...form }
       if (!body.segundo_nombre) delete body.segundo_nombre
       const { data } = await crearPersona(body)
-      setStatus({ type: 'ok', msg: `Persona creada con id ${data.id}.` })
+      let msg = `Persona creada con id ${data.id}.`
+      if (foto) {
+        try {
+          await subirFoto(form.tipo_documento, form.nro_documento, foto)
+          msg += ' Foto subida.'
+        } catch (fe) {
+          msg += ` Pero la foto fallo: ${extraerError(fe)}`
+        }
+      }
+      setStatus({ type: 'ok', msg })
+      notify.ok(msg)
       setForm(initial)
+      setFoto(null)
+      e.target.reset()
     } catch (err) {
-      setStatus({ type: 'err', msg: extraerError(err) })
+      const m = extraerError(err)
+      setStatus({ type: 'err', msg: m })
+      notify.err(m)
     } finally {
       setLoading(false)
     }
@@ -76,6 +92,9 @@ export default function Crear() {
         </label>
         <label>Celular
           <input value={form.celular} onChange={set('celular')} required pattern="\d{10}" maxLength={10} placeholder="10 digitos" />
+        </label>
+        <label>Foto (opcional)
+          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setFoto(e.target.files[0] || null)} />
         </label>
         <button disabled={loading}>{loading ? 'Creando...' : 'Crear'}</button>
       </form>

@@ -9,7 +9,10 @@ import Log from './pages/Log.jsx'
 import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
 import ForgotPassword from './pages/ForgotPassword.jsx'
+import Galeria from './pages/Galeria.jsx'
 import RequireAuth from './RequireAuth.jsx'
+import Toaster from './ui/Toaster.jsx'
+import LoadingBar from './ui/LoadingBar.jsx'
 import { getUser, logout } from './auth.js'
 
 const nav = [
@@ -41,6 +44,7 @@ function UserBox() {
 export default function App() {
   return (
     <div className="layout">
+      <LoadingBar />
       <header>
         <h1>Gestion de Datos Personales</h1>
         <nav>
@@ -62,11 +66,13 @@ export default function App() {
           <Route path="/chat" element={<RequireAuth><ChatNL /></RequireAuth>} />
           <Route path="/borrar" element={<RequireAuth><Borrar /></RequireAuth>} />
           <Route path="/log" element={<RequireAuth><Log /></RequireAuth>} />
+          <Route path="/galeria" element={<RequireAuth><Galeria /></RequireAuth>} />
         </Routes>
       </main>
       <footer>
         Diseno de Software 2 &middot; Trabajo final &middot; Grupo de 4
       </footer>
+      <Toaster />
     </div>
   )
 }
